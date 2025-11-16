@@ -134,3 +134,19 @@ def get_song_id_history_recent(username: str):
         cur.execute(sql, (username,))
         rows = cur.fetchall()
     return [row[0] for row in rows]
+
+# ----- Get User Song Histroy for day function is called
+def get_top3_song_id_history_recent(username: str):
+    sql = """
+    SELECT song_id
+    FROM listentosong
+    WHERE username = %s
+      AND datetime_listened >= NOW() - INTERVAL '1 year'
+    ORDER BY datetime_listened DESC
+    LIMIT 3;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql, (username,))
+        rows = cur.fetchall()
+    return [row[0] for row in rows]

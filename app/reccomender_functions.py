@@ -1,6 +1,19 @@
-from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history_recent, get_song_ids, get_usernames, song_in_album, song_in_genre, song_with_artist, get_song_id_history_all_time
+from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history_recent, get_song_ids, get_top3_song_id_history_recent, get_usernames, song_in_album, song_in_genre, song_with_artist, get_song_id_history_all_time
 
 #Author: Sean Allen
+
+# ----- MAIN FUNCTION
+def reccomend_songs(target_username: str):
+    user1 = get_closest_user_all_time(target_username)
+    user2 = get_closest_user_recent(target_username)
+
+    songs1 = get_top3_song_id_history_recent(user1)
+    songs2 = get_top3_song_id_history_recent(user2)
+
+    if not songs2:
+        return songs1
+    else:
+        return songs1 + songs2
 
 def get_largest_key(dictionary: dict) -> tuple[int, dict]:
     largest_key = max(dictionary)
