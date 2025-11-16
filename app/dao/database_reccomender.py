@@ -69,3 +69,30 @@ def song_in_genre(song_id: int, genre_id: int) -> bool:
         row = cur.fetchone()
 
     return row is not None
+
+# ----- Get all artist IDs 
+def get_artist_ids():
+    sql = """
+        SELECT artist_id
+        FROM artist;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+    return [row[0] for row in rows]
+
+# ----- Checks to see if song associated with artist
+def song_with_artist(song_id: int, artist_id: int) -> bool:
+    sql = """
+        SELECT 1
+        FROM makesong
+        WHERE song_id = %s AND artist_id = %s
+        LIMIT 1;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql, (song_id, artist_id))
+        row = cur.fetchone()
+
+    return row is not None
