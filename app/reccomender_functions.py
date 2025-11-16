@@ -1,4 +1,4 @@
-from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history, get_song_ids, song_in_album, song_in_genre, song_with_artist
+from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history_recent, get_song_ids, get_usernames, song_in_album, song_in_genre, song_with_artist, get_song_id_history_all_time
 
 #Author: Sean Allen
 
@@ -8,11 +8,10 @@ def get_largest_key(dictionary: dict) -> tuple[int, dict]:
     return largest_key, dictionary
 
 # ----- Get top 3 most listened to albums
-def get_top_3_album(username: str):
+def get_top_3_album(username: str, song_list: list):
     album_dict = dict()
 
-    #rember to remove and pass in parameter in later for this so you don't forget it
-    song_ids = get_song_id_history(username)
+    song_ids = song_list
     album_ids = get_album_ids()
 
     #Adds songs to album
@@ -33,11 +32,10 @@ def get_top_3_album(username: str):
     return top_3
 
 # ----- Get top 3 most listened to genre
-def get_top_3_genre(username: str):
+def get_top_3_genre(username: str, song_list: list):
     genre_dict = dict()
 
-    #REMEBER to remove and pass in parameter in later for this so you don't forget it
-    song_ids = get_song_id_history(username)
+    song_ids = song_list
     genre_ids = get_genres_ids()
 
     #Adds songs to album
@@ -58,11 +56,10 @@ def get_top_3_genre(username: str):
     return top_3
 
 # ----- Get top 3 most listened to artist
-def get_top_3_artist(username: str):
+def get_top_3_artist(username: str, song_list: list):
     artist_dict = dict()
 
-    #REMEBER to remove and pass in parameter in later for this so you don't forget it
-    song_ids = get_song_id_history(username)
+    song_ids = song_list
     artist_ids = get_artist_ids()
 
     #Adds songs to album
@@ -82,20 +79,43 @@ def get_top_3_artist(username: str):
 
     return top_3
 
-# -----Similarity Matrix, Feature Vector
+def get_top_3_all_time(username: str):
+    song_list = get_song_id_history_all_time(username)
 
-## -----Index Map for creating Vectors 
+    album_3 = get_top_3_album(username, song_list)
+    genre_3 = get_top_3_genre(username, song_list)
+    artist_3 = get_top_3_artist(username, song_list)
+
+    return album_3, genre_3, artist_3
+
+def get_top_3_recent(username: str):
+    song_list = get_song_id_history_recent(username)
+
+    album_3 = get_top_3_album(username, song_list)
+    genre_3 = get_top_3_genre(username, song_list)
+    artist_3 = get_top_3_artist(username, song_list)
+
+    return album_3, genre_3, artist_3
+
+
+# -----Similarity Matrix, Feature Vector, Cosine Similatrity
+
+## -----Makes Indexes in a vector accesible 
 ##(amount of values a the program has to work inside a user)
 def get_vector_length():
     ALL_SONG_IDS = get_song_ids()
+    #enumerate: 
     SONG_INDEX = {song_id: i for i, song_id in enumerate(ALL_SONG_IDS)}
     return len(ALL_SONG_IDS), SONG_INDEX
 
 # -----Createing a vector for each song, all time
 def build_user_vector_all_time(username: str) -> list[float]:
-    history = get_song_id_history(username)
+    history = get_song_id_history_all_time(username)
     vector_length, song_index =  get_vector_length()
     vec = [0.0] * vector_length #defines length of array
+
+    #get weights, Categorical Attributes so make scores be more accurate based on additional factors
+
 
     #for each song give the inde x a score of 1
     for song_id in history:
@@ -106,7 +126,7 @@ def build_user_vector_all_time(username: str) -> list[float]:
 
 ## -----Createing a vector for each song, recent
 def build_user_vector_recent(username: str):
-    history = get_song_id_history(username)
+    history = get_song_id_history_recent(username)
     vector_length, song_index =  get_vector_length()
 
     #if no songs return 0 for all indexes
@@ -158,3 +178,58 @@ def cosine_similarity_matrix(vectors):
                 similarity_matrix[i][j] = cosine_similarity(vectors[i], vectors[j])
     return similarity_matrix
 
+def get_closest_user_recent(target_username):
+    users = get_usernames()
+
+    #track if target has recent activity
+    has_recent_target, target_vec = build_user_vector_recent(target_username)
+    if not has_recent_target:
+        return False, None
+
+    #build vectors
+    vectors: dict[str, list[float]] = {}
+    for u in users:
+        if u == target_username:
+            continue
+        has_recent, vec = build_user_vector_recent(u)
+        if has_recent:
+            vectors[u] = vec
+
+    if not vectors:
+        return False, None
+
+    best_user = None
+    best_score = -1.0
+
+    #set scores
+    for u, vec in vectors.items():
+        score = cosine_similarity(target_vec, vec)
+        if score > best_score:
+            best_score = score
+            best_user = u
+
+    return True, best_user
+
+def get_closest_user_all_time(target_username: str):
+    users = get_usernames()
+
+    # build vectors for everyone
+    vectors: dict[str, list[float]] = {}
+    for u in users:
+        vectors[u] = build_user_vector_all_time(u)
+
+    target_vec = vectors[target_username]
+
+    best_user = None
+    best_score = -1.0
+
+    #set scores
+    for u, vec in vectors.items():
+        if u == target_username:
+            continue
+        score = cosine_similarity(target_vec, vec)
+        if score > best_score:
+            best_score = score
+            best_user = u
+
+    return best_user

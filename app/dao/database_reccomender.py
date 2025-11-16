@@ -28,7 +28,7 @@ def get_song_ids():
     return [row[0] for row in rows]
 
 # ----- Get All User Song Histroy 
-def get_song_id_history(username: str):
+def get_song_id_history_all_time(username: str):
     sql = """
         SELECT song_id
         FROM listentosong
@@ -122,7 +122,7 @@ def song_with_artist(song_id: int, artist_id: int) -> bool:
     return row is not None
 
 # ----- Get User Song Histroy for day function is called
-def get_song_id_history(username: str):
+def get_song_id_history_recent(username: str):
     sql = """
         SELECT song_id
         FROM listentosong
