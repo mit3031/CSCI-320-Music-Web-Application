@@ -84,8 +84,8 @@ def get_top_3_artist(username: str):
 
 # -----Similarity Matrix, Feature Vector
 
-# -----Index Map for creating Vectors 
-#(amount of values a the program has to work inside a user)
+## -----Index Map for creating Vectors 
+##(amount of values a the program has to work inside a user)
 def get_vector_length():
     ALL_SONG_IDS = get_song_ids()
     SONG_INDEX = {song_id: i for i, song_id in enumerate(ALL_SONG_IDS)}
@@ -104,7 +104,7 @@ def build_user_vector_all_time(username: str) -> list[float]:
             vec[idx] += 1.0
     return vec
 
-# -----Createing a vector for each song, recent
+## -----Createing a vector for each song, recent
 def build_user_vector_recent(username: str):
     history = get_song_id_history(username)
     vector_length, song_index =  get_vector_length()
@@ -120,3 +120,41 @@ def build_user_vector_recent(username: str):
         if idx is not None:
             vec[idx] += 1.0
     return True, vec
+
+### ----- Cosine Similarity Calcuation Functions
+### cos(0) = (A*B)/(||A|||B||)
+### (A*B) = Dot Product, sum of results from multiplying vectors together
+### ||A|| and ||BB| are the magnitude (or absolute values)
+### All return a score of 0 - 1, 1 being the most similar
+
+def dot_product(vec1, vec2):
+    if len(vec1) != len(vec2):
+        raise ValueError("Vectors must have the same length")
+    return sum(v1 * v2 for v1, v2 in zip(vec1, vec2))
+
+def magnitude(vec):
+    return sum(v**2 for v in vec)**0.5
+
+def cosine_similarity(vec1, vec2):
+    dp = dot_product(vec1, vec2)
+    mag1 = magnitude(vec1)
+    mag2 = magnitude(vec2)
+
+    if mag1 == 0 or mag2 == 0:
+        return 0.0  # Handle zero vectors
+    return dp / (mag1 * mag2)
+
+def cosine_similarity_matrix(vectors):
+    num_vectors = len(vectors)
+    # Initialize a square matrix with zeros
+    similarity_matrix = [[0.0 for _ in range(num_vectors)] for _ in range(num_vectors)]
+
+    ##Assing scores to each index in the vector
+    for i in range(num_vectors):
+        for j in range(num_vectors):
+            if i == j:
+                similarity_matrix[i][j] = 1.0
+            else:
+                similarity_matrix[i][j] = cosine_similarity(vectors[i], vectors[j])
+    return similarity_matrix
+

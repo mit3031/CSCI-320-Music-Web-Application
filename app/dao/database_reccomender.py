@@ -4,6 +4,18 @@ from ..db import get_db
 # Author: Sean Allen
 
 # ----- Get All User Song Histroy 
+def get_usernames():
+    sql = """
+        SELECT usernames
+        FROM user
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+    return [row[0] for row in rows]
+
+# ----- Get All User Song Histroy 
 def get_song_ids():
     sql = """
         SELECT song_id
