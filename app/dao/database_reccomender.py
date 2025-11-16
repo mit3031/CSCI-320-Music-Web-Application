@@ -42,3 +42,30 @@ def song_in_album(song_id: int, album_id: int) -> bool:
         row = cur.fetchone()
 
     return row is not None
+
+# ----- Get all genres IDs 
+def get_genres_ids():
+    sql = """
+        SELECT genre_id
+        FROM genre;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+    return [row[0] for row in rows]
+
+# ----- Checks to see if song is in genre
+def song_in_genre(song_id: int, genre_id: int) -> bool:
+    sql = """
+        SELECT 1
+        FROM songhasgenre
+        WHERE song_id = %s AND genre_id = %s
+        LIMIT 1;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql, (song_id, genre_id))
+        row = cur.fetchone()
+
+    return row is not None
