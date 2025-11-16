@@ -17,7 +17,25 @@ Author: Marvynn Talusan (mit3031)
         <p><strong>Email:</strong> {{ user[1] }}</p>
         <p><strong>Account Created:</strong> {{ user[4] }}</p>
         <p><strong>Last Login:</strong> {{ user[5] or "Never" }}</p>
+        <p><strong>Collections:</strong> {{ collection_count }}</p>
+        <p><strong>Followers:</strong> {{ followers|length }}</p>
+        <p><strong>Following:</strong> {{ following|length }}</p>
     </div>
+
+    <hr style="margin: 20px 0; border-color: #ccc;">
+
+    <h3 style="margin-bottom: 15px;">Top 10 Artists</h3>
+    {% if top_artists %}
+        <ul style="list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 10px;">
+            {% for artist in top_artists %}
+                <li style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff;">
+                    {{ loop.index }}. {{ artist[0] }} (Score: {{ artist[1] }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No artist data available yet.</p>
+    {% endif %}
 
     <hr style="margin: 20px 0; border-color: #ccc;">
 
