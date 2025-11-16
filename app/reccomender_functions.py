@@ -1,4 +1,4 @@
-from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history, song_in_album, song_in_genre, song_with_artist
+from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history, get_song_ids, song_in_album, song_in_genre, song_with_artist
 
 #Author: Sean Allen
 
@@ -7,8 +7,8 @@ def get_largest_key(dictionary: dict) -> tuple[int, dict]:
     dictionary.pop(largest_key)
     return largest_key, dictionary
 
-# ----- Get top 3 most listened to albums all time
-def get_top_3_album_all_time(username: str):
+# ----- Get top 3 most listened to albums
+def get_top_3_album(username: str):
     album_dict = dict()
 
     #rember to remove and pass in parameter in later for this so you don't forget it
@@ -32,8 +32,8 @@ def get_top_3_album_all_time(username: str):
 
     return top_3
 
-# ----- Get top 3 most listened to genres all time
-def get_top_3_genre_all_time(username: str):
+# ----- Get top 3 most listened to genre
+def get_top_3_genre(username: str):
     genre_dict = dict()
 
     #REMEBER to remove and pass in parameter in later for this so you don't forget it
@@ -57,7 +57,8 @@ def get_top_3_genre_all_time(username: str):
 
     return top_3
 
-def get_top_3_artist_all_time(username: str):
+# ----- Get top 3 most listened to artist
+def get_top_3_artist(username: str):
     artist_dict = dict()
 
     #REMEBER to remove and pass in parameter in later for this so you don't forget it
@@ -81,5 +82,41 @@ def get_top_3_artist_all_time(username: str):
 
     return top_3
 
+# -----Similarity Matrix, Feature Vector
 
+# -----Index Map for creating Vectors 
+#(amount of values a the program has to work inside a user)
+def get_vector_length():
+    ALL_SONG_IDS = get_song_ids()
+    SONG_INDEX = {song_id: i for i, song_id in enumerate(ALL_SONG_IDS)}
+    return len(ALL_SONG_IDS), SONG_INDEX
 
+# -----Createing a vector for each song, all time
+def build_user_vector_all_time(username: str) -> list[float]:
+    history = get_song_id_history(username)
+    vector_length, song_index =  get_vector_length()
+    vec = [0.0] * vector_length #defines length of array
+
+    #for each song give the inde x a score of 1
+    for song_id in history:
+        idx = song_index.get(song_id)
+        if idx is not None:
+            vec[idx] += 1.0
+    return vec
+
+# -----Createing a vector for each song, recent
+def build_user_vector_recent(username: str):
+    history = get_song_id_history(username)
+    vector_length, song_index =  get_vector_length()
+
+    #if no songs return 0 for all indexes
+    if not history:
+        return False, [0.0] * vector_length
+    vec = [0.0] * vector_length
+
+    #for each song give the inde x a score of 1
+    for song_id in history:
+        idx = song_index.get(song_id)
+        if idx is not None:
+            vec[idx] += 1.0
+    return True, vec
