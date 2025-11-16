@@ -104,7 +104,7 @@ def get_top_3_recent(username: str):
 ##(amount of values a the program has to work inside a user)
 def get_vector_length():
     ALL_SONG_IDS = get_song_ids()
-    #enumerate: 
+    #enumerate: gives index and value of item
     SONG_INDEX = {song_id: i for i, song_id in enumerate(ALL_SONG_IDS)}
     return len(ALL_SONG_IDS), SONG_INDEX
 
@@ -114,17 +114,19 @@ def build_user_vector_all_time(username: str) -> list[float]:
     vector_length, song_index =  get_vector_length()
     vec = [0.0] * vector_length #defines length of array
 
-    #get weights, Categorical Attributes so make scores be more accurate based on additional factors
-
+    #categorical attributes
+    weight = categorical_attributes(weight)
 
     #for each song give the inde x a score of 1
     for song_id in history:
         idx = song_index.get(song_id)
         if idx is not None:
-            vec[idx] += 1.0
+             #adjust scores based on how much target use matches with other users taste
+             #based on genre, artist, and album
+            vec[idx] += weight
     return vec
 
-## -----Createing a vector for each song, recent
+## ----- Createing a vector for each song, recent
 def build_user_vector_recent(username: str):
     history = get_song_id_history_recent(username)
     vector_length, song_index =  get_vector_length()
@@ -140,6 +142,38 @@ def build_user_vector_recent(username: str):
         if idx is not None:
             vec[idx] += 1.0
     return True, vec
+
+## ----- Get weights, Categorical Attributes so make scores be more accurate based on additional factors
+def categorical_attributes(username: str, history: list):
+    album_3_all, genre_3_all, artist_3_all = get_top_3_all_time(username)
+    album_3_rec, genre_3_rec, artist_3_rec = get_top_3_recent(username)
+
+    categorial_attributes = dict()
+    categorial_attributes["album_all"] = album_3_all
+    categorial_attributes["genre_all"] = genre_3_all
+    categorial_attributes["artist_all"] = artist_3_all
+    categorial_attributes["album_rec"] = album_3_rec
+    categorial_attributes["genre_rec"] = genre_3_rec
+    categorial_attributes["artist_rec"] = artist_3_rec
+
+    weight = get_weights(categorical_attributes, history)
+
+    return weight
+
+## -----Returns the values of each weight for the 3 categories
+def get_weights(categorical_attributes: dict, history: list):
+    weight = 1.0
+
+    for category in categorical_attributes:
+        for value in category:
+            for song in history:
+                if (value == "album_all" or value == "album_rec") and song_in_album(song, value):
+                    weight += 0.3
+                elif (value == "genre_all" or value == "genre_rec") and song_in_genre(song, value):
+                    weight += 0.8
+                elif (value == "artist_all" or value == "artist_rec") and song_with_artist(song, value):
+                    weight += 0.5
+    return weight
 
 ### ----- Cosine Similarity Calcuation Functions
 ### cos(0) = (A*B)/(||A|||B||)
