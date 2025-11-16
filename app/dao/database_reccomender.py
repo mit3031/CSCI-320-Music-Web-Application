@@ -15,3 +15,15 @@ def get_song_id_history(username: str):
         cur.execute(sql, (username,))
         rows = cur.fetchall()
     return [row[0] for row in rows]
+
+# ----- Get all album IDs ---------------------------------------------------------------
+def get_album_ids():
+    sql = """
+        SELECT album_id
+        FROM album;
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+    return [row[0] for row in rows]
