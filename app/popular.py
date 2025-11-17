@@ -13,6 +13,8 @@ import datetime
 
 bp = Blueprint("popular", __name__, url_prefix="/popular")
 
+# SEARCH FUNCTIONS
+
 #
 # Retrives the top 50 songs among the current user's followers
 # As well as any data necessary to display them
@@ -27,7 +29,7 @@ def followed_popular():
         db_conn = get_db()
         try:
             with db_conn.cursor() as curs:
-                curs.execute(
+                query = perform_select_query(curs, 
                     'SELECT DISTINCT song.song_id, song.title, ar.name, al.name, g.name AS genre, ' \
                     'song.length, song.release_date, popular.times_listened ' \
                     'FROM ' \
@@ -39,7 +41,7 @@ def followed_popular():
                     '       WHERE lts.username IN ' \
                     '           (SELECT followed_username ' \
                     '           FROM "followuser" ' \
-                    f'           WHERE follow_username = \'{user}\'))' \
+                    f'          WHERE follow_username = \'{user}\'))' \
                     '   AS l ON (so.song_id = l.song_id) ' \
                     '   GROUP BY so.song_id ' \
                     '   ORDER BY times_listened DESC ' \
@@ -55,7 +57,7 @@ def followed_popular():
                     'ORDER BY popular.times_listened DESC'
                 )
                 # curs.fetchall[x] = [song id, song title, artist, album, genre, length, how many listens among followed users]
-                results = format_song_query_results(curs.fetchall())
+                results = format_song_query_results(query)
 
                 # Warning for debug: <50 is possible, >50 should not be.
                 if (len(results) > 50):
@@ -74,7 +76,74 @@ def followed_popular():
     return render_template("popular/popular.html")
 
 #
-# A helper function that properl formats the results of a song query
+# Retrives the top 5 genres of the month
+# Author: Joseph Britton (jtb8595)
+#
+@bp.route("/genre", methods=["GET", "POST"])
+@login_required
+def popular_genres():
+    if request.method == "POST":
+        db_conn = get_db()
+        try:
+            with db_conn.cursor() as curs:
+                popular = perform_select_query(curs, 
+                    'SELECT g.genre_id, g.name, popular.count ' \
+                    'FROM ' \
+                    '   (SELECT g.genre_id, COUNT(l.datetime_listened) AS count ' \
+                    '   FROM listentosong AS l ' \
+                    '   INNER JOIN songhasgenre AS h ON (h.song_id = l.song_id) ' \
+                    '   INNER JOIN genre AS g ON (g.genre_id = h.genre_id) ' \
+                    '   WHERE EXTRACT(YEAR FROM l.datetime_listened) = EXTRACT(YEAR FROM CURRENT_DATE) ' \
+                    '   AND EXTRACT(MONTH FROM l.datetime_listened) = EXTRACT(MONTH FROM CURRENT_DATE) ' \
+                    '   GROUP BY g.genre_id ' \
+                    '   ORDER BY count DESC ' \
+                    '   LIMIT 5) AS popular ' \
+                    'INNER JOIN genre AS g ON (g.genre_id = popular.genre_id) ' \
+                    'ORDER BY popular.count DESC' \
+                )
+
+                results = [] 
+
+                # Construct the results
+                for entry in popular:
+                    results.append({
+                        "genre_id": entry[0],
+                        "name": entry[1],
+                        "times_listened": entry[2]
+                    })
+
+                # Warning for debug: <5 is possible, >5 should not be.
+                if (len(results) > 5):
+                    print(f"There's {len(results)} entries in results, " +
+                        "which is supposed to be a top 5. Just a heads up." )
+                
+                db_conn.commit()
+        except psycopg.Error as e:
+            db_conn.rollback()
+            flash(f"Database error: {e}")
+            return f"Database error: {e}", 500
+        
+        
+        return render_template("popular/genres.html", results=results)
+    
+    return render_template("popular/popular.html")
+
+
+
+# HELPER FUNCTIONS
+
+#
+# A helper function that performs a select query and returns the results
+# cursor: The database cursor to call the query from
+# query: The string to use as the query
+# Author: Joseph Britton (jtb8595)
+#
+def perform_select_query(cursor, query):
+    cursor.execute(query)
+    return cursor.fetchall()
+
+#
+# A helper function that properly formats the results of a song query
 # Author: Joseph Britton (jtb8595)
 #
 def format_song_query_results(select_array):
@@ -115,57 +184,3 @@ def format_song_query_results(select_array):
                     results[song_ids.index(entry[0])]['genre'] += ", " + entry[4]
 
     return results
-
-#
-# Retrives the top 5 genres of the month
-# Author: Joseph Britton (jtb8595)
-#
-@bp.route("/genre", methods=["GET", "POST"])
-@login_required
-def popular_genres():
-    if request.method == "POST":
-        db_conn = get_db()
-        try:
-            with db_conn.cursor() as curs:
-                curs.execute(
-                    'SELECT g.genre_id, g.name, popular.count ' \
-                    'FROM ' \
-                    '   (SELECT g.genre_id, COUNT(l.datetime_listened) AS count ' \
-                    '   FROM listentosong AS l ' \
-                    '   INNER JOIN songhasgenre AS h ON (h.song_id = l.song_id) ' \
-                    '   INNER JOIN genre AS g ON (g.genre_id = h.genre_id) ' \
-                    '   WHERE EXTRACT(YEAR FROM l.datetime_listened) = EXTRACT(YEAR FROM CURRENT_DATE) ' \
-                    '   AND EXTRACT(MONTH FROM l.datetime_listened) = EXTRACT(MONTH FROM CURRENT_DATE) ' \
-                    '   ORDER BY cound DESC ' \
-                    '   LIMIT 5' \
-                    'GROUP BY g.genre_id) AS popular ' \
-                    'INNER JOIN genre AS g ON (g.genre_id = popular.genre_id) ' \
-                    'ORDER BY popular.count DESC' \
-                )
-
-                popular = curs.fetchall()
-                results = [] 
-
-                # Construct the results
-                for entry in popular:
-                    results.append({
-                        "genre_id": entry[0],
-                        "name": entry[1],
-                        "times_listened": entry[2]
-                    })
-
-                # Warning for debug: <5 is possible, >5 should not be.
-                if (len(results) > 5):
-                    print(f"There's {len(results)} entries in results, " +
-                        "which is supposed to be a top 5. Just a heads up." )
-                
-                db_conn.commit()
-        except psycopg.Error as e:
-            db_conn.rollback()
-            flash(f"Database error: {e}")
-            return f"Database error: {e}", 500
-        
-        
-        return render_template("popular/genres.html", results=results)
-    
-    return render_template("popular/popular.html")
