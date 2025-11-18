@@ -16,6 +16,61 @@ bp = Blueprint("popular", __name__, url_prefix="/popular")
 # SEARCH FUNCTIONS
 
 #
+# Retrives the top 50 songs of the past 30 days
+# As well as any data necessary to display them
+# Author: Joseph Britton (jtb8595)
+#
+@bp.route("/songs", methods=["GET", "POST"])
+@login_required
+def songs_popular():
+    if request.method == "POST":
+
+        db_conn = get_db()
+        try:
+            with db_conn.cursor() as curs:
+                query = perform_select_query(curs, 
+                    'SELECT DISTINCT so.song_id, so.title, ar.name, al.name, g.name AS genre, ' \
+                    'so.length, so.release_date, popular.times_listened ' \
+                    'FROM ' \
+                    '   (SELECT song_id, COUNT(datetime_listened) AS times_listened ' \
+                    '   FROM listentosong ' \
+                    '   WHERE datetime_listened > NOW() - INTERVAL \'30 day\' ' \
+                    '   GROUP BY song_id ' \
+                    '   ORDER BY times_listened DESC ' \
+                    '   LIMIT 50) AS popular ' \
+                    'INNER JOIN song AS so ON (so.song_id = popular.song_id) ' \
+                    'INNER JOIN makesong AS m ON (m.song_id = so.song_id) ' \
+                    'INNER JOIN artist AS ar ON (ar.artist_id = m.artist_id) ' \
+                    'INNER JOIN ispartofalbum AS i ON (i.song_id = so.song_id) ' \
+                    'INNER JOIN album AS al ON (al.album_id = i.album_id) ' \
+                    'INNER JOIN songhasgenre AS h ON (h.song_id = so.song_id) ' \
+                    'INNER JOIN genre AS g on (g.genre_id = h.genre_id) ' \
+                    'ORDER BY popular.times_listened DESC'
+                )
+                #
+                # curs.fetchall[x] = [song id, song title, artist, album, genre, length, 
+                # release date, how many listens in the past 30 days]
+                #
+                results = format_song_query_results(query)
+
+                # Warning for debug: <50 is possible, >50 should not be.
+                if (len(results) > 50):
+                    print(f"There's {len(results)} entries in results, " +
+                        "which is supposed to be a top 50. Just a heads up." )
+                
+                db_conn.commit()
+        except psycopg.Error as e:
+            db_conn.rollback()
+            flash(f"Database error: {e}")
+            return f"Database error: {e}", 500
+        
+        
+        return render_template("popular/songs.html", results=results)
+    
+    return render_template("popular/popular.html")
+
+
+#
 # Retrives the top 50 songs among the current user's followers
 # As well as any data necessary to display them
 # Author: Joseph Britton (jtb8595)
@@ -56,7 +111,10 @@ def followed_popular():
                     'INNER JOIN genre AS g ON (g.genre_id = shg.genre_id) ' \
                     'ORDER BY popular.times_listened DESC'
                 )
-                # curs.fetchall[x] = [song id, song title, artist, album, genre, length, how many listens among followed users]
+                #
+                # curs.fetchall[x] = [song id, song title, artist, album, genre, length, 
+                # release date, how many listens among followed users]
+                #
                 results = format_song_query_results(query)
 
                 # Warning for debug: <50 is possible, >50 should not be.
@@ -150,7 +208,7 @@ def format_song_query_results(select_array):
     song_ids = [] # The ids of songs added to results (and which index they're at)
 
     # results[x] = {id: song id, name: title, artist: artist name...
-    # ..., length: length, listen_count: how many times the FOLLOWED USERS have listened}
+    # ..., length: length, listen_count: the listen count of the song}
     results = []
 
     # Construct the results

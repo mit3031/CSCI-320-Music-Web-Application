@@ -10,11 +10,15 @@ Author: Joseph Britton (jtb8595)
 {% block title %}Popular Songs{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('popular.followed_popular') }}" method="POST">
-    <button type="submit">Followed Popular</button>
-</form>
-<form action="{{ url_for('popular.popular_genres') }}" method="POST">
-    <button type="submit">Popular Genres</button>
+<form action="{{ url_for('popular.songs_popular') }}" method="POST">
+    <button type="submit">Most Popular Songs in the Last 30 Days</button>
 </form>
 
+<form action="{{ url_for('popular.followed_popular') }}" method="POST">
+    <button type="submit">Popular Among Users You Follow</button>
+</form>
+
+<form action="{{ url_for('popular.popular_genres') }}" method="POST">
+    <button type="submit">Last Month's Popular Genres</button>
+</form>
 {% endblock %}
