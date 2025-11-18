@@ -11,6 +11,7 @@ from faker import Faker
 import psycopg
 from sshtunnel import SSHTunnelForwarder
 import atexit
+import bcrypt
 
 load_dotenv()
 RIT_USERNAME=os.getenv("RIT_USERNAME")
@@ -69,6 +70,25 @@ def rand_timestamp(start_year=2020, end_year=2025):
     end = datetime(end_year, 12, 31)
     return fake.date_time_between_dates(start, end)
 
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def hash_passwords(con):
+    def hash_pw(password: str) -> str:
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    cur = con.cursor()
+    cur.execute('SELECT username, password FROM "user"')
+    users = cur.fetchall()
+    
+    for i, (username, plain_password) in enumerate(users, 1):
+        hashed = hash_pw(plain_password)
+        cur.execute('UPDATE "user" SET password = %s WHERE username = %s', (hashed, username))
+        if i % 100 == 0:
+            print(f"Hashed {i}/{len(users)} passwords...")
+    
+    con.commit()
+
 """
 Populates user table with n amount of unique users
 """
@@ -92,6 +112,7 @@ def populate_users(con, n=6000):
                 emails.add(email)
                 break
         password = fake.password(length=20)
+        secure_pw = hash_password(password)
         first_name = fake.first_name()
         while len(first_name) > 20:
             first_name = fake.first_name()
@@ -103,7 +124,7 @@ def populate_users(con, n=6000):
         cur.execute("""
             INSERT INTO "user"(username, password, email, first_name, last_name, last_login, date_created)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (username, password, email, first_name, last_name, last_login, date_created))
+        """, (username, secure_pw, email, first_name, last_name, last_login, date_created))
     con.commit()
 
 """
@@ -575,22 +596,23 @@ def main():
         start_ssh()
         con = get_con()
         
-        populate_users(con)
-        populate_artists(con)
-        populate_genres(con)
-        populate_songs(con)
-        populate_albums(con)
-        populate_collections(con)
-        populate_follow_users(con)
-        populate_make_song(con)
-        populate_make_album(con)
-        populate_is_part_of_album(con)
-        populate_song_has_genre(con)
-        populate_album_has_genre(con)
-        sync_music(con)
-        populate_is_part_of_collection(con)
-        populate_listen_to_song(con)
-        populate_song_rating(con)
+        #populate_users(con)
+        hash_passwords(con)
+        #populate_artists(con)
+        #populate_genres(con)
+        #populate_songs(con)
+        #populate_albums(con)
+        #populate_collections(con)
+        #populate_follow_users(con)
+        #populate_make_song(con)
+        #populate_make_album(con)
+        #populate_is_part_of_album(con)
+        #populate_song_has_genre(con)
+        #populate_album_has_genre(con)
+        #sync_music(con)
+        #populate_is_part_of_collection(con)
+        #populate_listen_to_song(con)
+        #populate_song_rating(con)
         
         con.close()
     except Exception as e:
