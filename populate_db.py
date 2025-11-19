@@ -11,6 +11,7 @@ from faker import Faker
 import psycopg
 from sshtunnel import SSHTunnelForwarder
 import atexit
+import bcrypt
 
 load_dotenv()
 RIT_USERNAME=os.getenv("RIT_USERNAME")
@@ -70,6 +71,31 @@ def rand_timestamp(start_year=2020, end_year=2025):
     return fake.date_time_between_dates(start, end)
 
 """
+Utility function to hash a password
+"""
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+"""
+Function that hashes all passwords of users currently in the database
+"""
+def hash_passwords(con):
+    def hash_pw(password: str) -> str:
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    cur = con.cursor()
+    cur.execute('SELECT username, password FROM "user"')
+    users = cur.fetchall()
+    
+    for i, (username, plain_password) in enumerate(users, 1):
+        hashed = hash_pw(plain_password)
+        cur.execute('UPDATE "user" SET password = %s WHERE username = %s', (hashed, username))
+        if i % 100 == 0:
+            print(f"Hashed {i}/{len(users)} passwords...")
+    
+    con.commit()
+
+"""
 Populates user table with n amount of unique users
 """
 def populate_users(con, n=6000):
@@ -92,6 +118,7 @@ def populate_users(con, n=6000):
                 emails.add(email)
                 break
         password = fake.password(length=20)
+        secure_pw = hash_password(password)
         first_name = fake.first_name()
         while len(first_name) > 20:
             first_name = fake.first_name()
@@ -103,7 +130,7 @@ def populate_users(con, n=6000):
         cur.execute("""
             INSERT INTO "user"(username, password, email, first_name, last_name, last_login, date_created)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (username, password, email, first_name, last_name, last_login, date_created))
+        """, (username, secure_pw, email, first_name, last_name, last_login, date_created))
     con.commit()
 
 """
@@ -576,6 +603,7 @@ def main():
         con = get_con()
         
         populate_users(con)
+        #hash_passwords(con)
         populate_artists(con)
         populate_genres(con)
         populate_songs(con)
