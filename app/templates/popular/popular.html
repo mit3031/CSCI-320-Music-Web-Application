@@ -1,8 +1,5 @@
 <!--
 Home screen for popularity search
-May be incorporated into other page as time goes on and
-    design vision for Phase 3 features becomes more defined
-Currently very unrefined and serves to test popularity lists as they are implemented
 Author: Joseph Britton (jtb8595)
 -->
 
@@ -10,15 +7,21 @@ Author: Joseph Britton (jtb8595)
 {% block title %}Popular Songs{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('popular.songs_popular') }}" method="POST">
-    <button type="submit">Most Popular Songs in the Last 30 Days</button>
-</form>
+<div style="max-width: 700px; margin: 50px auto; padding: 25px; border-radius: 12px; background-color: #f9f9f9; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+    <h2 style="text-align: center; margin-bottom: 25px; font-weight: 700;">Search by Popularity</h2>
+    
+    <div style="margin-top: 40px; display: flex; flex-direction: row; gap: 20px; align-items: center; justify-content: center;">
+        <form action="{{ url_for('popular.songs_popular') }}" method="POST">
+            <button type="submit" style="width: 200px; padding: 10px 18px; border-radius: 8px; border: none; background-color: #007BFF; color: white; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">Most Popular Songs in the Last 30 Days</button>
+        </form>
 
-<form action="{{ url_for('popular.followed_popular') }}" method="POST">
-    <button type="submit">Popular Among Users You Follow</button>
-</form>
-
-<form action="{{ url_for('popular.popular_genres') }}" method="POST">
-    <button type="submit">Last Month's Popular Genres</button>
-</form>
+        <form action="{{ url_for('popular.followed_popular') }}" method="POST">
+            <button type="submit" style="width: 200px; padding: 10px 18px; border-radius: 8px; border: none; background-color: #007BFF; color: white; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">Popular Among Users You Follow</button>
+        </form>
+        
+        <form action="{{ url_for('popular.popular_genres') }}" method="POST">
+            <button type="submit" style="width: 200px; padding: 10px 18px; border-radius: 8px; border: none; background-color: #007BFF; color: white; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">Last Month's Popular Genres</button>
+        </form>
+    </div>
+</div>
 {% endblock %}
