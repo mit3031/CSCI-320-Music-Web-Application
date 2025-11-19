@@ -37,7 +37,7 @@ Author: Joseph Britton (jtb8595)
             <td>{{ song.get('release_date', '—') }}</td>
             <td>{{ song.get('listen_count', 0) }}</td>
             <td style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-                <form action="{{ url_for('search.play_song', song_id=song['song_id']) }}" method="POST">
+                <form action="{{ url_for('popular.play_song', song_id=song['song_id']) }}" method="POST">
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <button type="submit" style="padding: 6px 10px; border-radius: 50px; border: none; background-color: #28a745; color: white; font-weight: 500; cursor: pointer;">▶ Play</button>
                 </form>

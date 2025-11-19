@@ -186,6 +186,29 @@ def popular_genres():
     
     return render_template("popular/popular.html")
 
+#
+# Handles song playback in popular lists for songs
+# Directly copied from play.py with zero modifications, so it's not my work
+# "Author": Joseph Britton (jtb8595)
+#
+@bp.route("/song/<int:song_id>", methods=["POST"])
+@login_required
+def play_song(song_id: int):
+    print(request.form)
+    next_url = request.form['next']
+    curr_time = datetime.datetime.now()
+
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO listentosong (username, song_id, datetime_listened)
+            VALUES (%s, %s, %s)
+        """, (current_user.id, song_id, curr_time))
+    
+    conn.commit()
+
+    if next_url:
+        return(redirect(next_url))
 
 
 # HELPER FUNCTIONS
