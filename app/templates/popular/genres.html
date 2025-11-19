@@ -25,9 +25,8 @@ Author: Joseph Britton (jtb8595)
                 <tr style="border-bottom: 1px solid #ddd;">
                     <td>{{ genre.get('name', '—') }}</td>
                     <td style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-                        <form action="{{ url_for('search.search_songs') }}" method="POST">
+                        <form action="{{ url_for('popular.search_songs_by_genre') }}" method="POST">
                             <input type="hidden" name="search" value="{{ genre.get('name', '—') }}">
-                            <input type="hidden" name="search_by" value="genre">
                             <button type="submit" style="padding: 6px 10px; border-radius: 50px; border: 1px solid #007BFF; background-color: white; color: #007BFF; font-weight: 500; cursor: pointer;">Search songs from this genre</button>
                         </form>
                     </td>

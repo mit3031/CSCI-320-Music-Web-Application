@@ -186,6 +186,169 @@ def popular_genres():
     
     return render_template("popular/popular.html")
 
+
+# FUNCTIONS LIFTED/ADAPTED FROM OTHER FILES
+
+#
+# Searches the database for songs that have a given genre
+# Based on the search_by="genre" branch of song_search from song_search.py
+# Author: Joseph Britton (jtb8595)
+#
+@bp.route("/search_by_genre", methods=["GET", "POST"])
+@login_required
+def search_songs_by_genre():
+    if request.method == "POST":
+        search_term = request.form["search"].strip()  # Whatever's in the search bar
+
+        db_conn = get_db()
+        try:
+            with db_conn.cursor() as curs:
+                songs = perform_select_query(curs, 
+                    'SELECT DISTINCT so.song_id, so.title, ar.name, al.name, g.name AS genre, so.length, so.release_date '
+                    'FROM "genre" AS g '
+                    'INNER JOIN "songhasgenre" AS h ON (h.genre_id = g.genre_id) '
+                    'INNER JOIN "song" AS so ON (so.song_id = h.song_id) '
+                    'INNER JOIN "makesong" AS m ON (so.song_id = m.song_id) '
+                    'INNER JOIN "artist" AS ar ON (ar.artist_id = m.artist_id) '
+                    'INNER JOIN "ispartofalbum" AS i ON (so.song_id = i.song_id) '
+                    'INNER JOIN "album" AS al ON (i.album_id = al.album_id) '
+                    f'WHERE g.name LIKE \'%%{search_term}%%\' '
+                    'ORDER BY so.title ASC, ar.name ASC'
+                )
+
+                # songs[x] = [song id, song name, artist, album, genre, song length, release_date]
+
+                song_ids = []
+                results = []  # [name, artist, album, length, number of times listened]
+
+                # Organize search results
+                for song in songs:
+                    # check if the song is not already in results
+                    if song[0] not in song_ids:
+                        # Not in results - add it
+
+                        # Get times listened to song
+                        curs.execute(
+                            'SELECT COUNT(*) '
+                            'FROM "listentosong" '
+                            f'WHERE song_id = {song[0]}',
+                            []
+                        )
+
+                        # Add song information to results
+                        results.append({
+                            "song_id": song[0],
+                            "name": song[1], 
+                            "artist": song[2], 
+                            "album": song[3], 
+                            "genre": song[4],
+                            "length": song[5],
+                            "release_date": song[6],
+                            "listened": curs.fetchone()[0]
+                        })
+                        song_ids.append(song[0])
+                    else:
+                        toCheck = results[song_ids.index(song[0])]
+                        # In results - add the artist to song information if not already there
+                        if song[2] not in toCheck['artist']:
+                            results[song_ids.index(song[0])]['artist'] += ", " + song[2]
+                        # Do the same for album
+                        if song[3] not in toCheck['album']:
+                            results[song_ids.index(song[0])]['album'] += ", " + song[3]
+                        # Do the same for genre
+                        if song[4] and song[4] not in toCheck['genre']:
+                            results[song_ids.index(song[0])]['genre'] += ", " + song[4]
+
+                db_conn.commit()
+        except psycopg.Error as e:
+            db_conn.rollback()
+            flash(f"Database error: {e}")
+            return f"Database error: {e}", 500
+    
+        return render_template("popular/search_by_genre.html", results=results, search_term=search_term)
+    
+    return render_template("popular/genres.html")
+#
+# Handles sorting the results of a search by genre
+# Adapted from the genre branch of sort_songs from song_search.py
+# Did not write that one, and I didn't modify the branch
+# Author: Joseph Britton (jtb8595)
+#
+@bp.route("/sort_songs", methods=["POST"])
+@login_required
+def sort_songs():
+    sort_by = request.form.get("sort_by")
+    direction = request.form.get("direction", "asc")
+    search_term = request.form.get("search_term")
+
+    db_conn = get_db()
+    results = []
+
+    sort_map = {
+        "song_name": "so.title",
+        "artist": "artist_names",
+        "genre": "genre_names",
+        "year": "so.release_date"
+    }
+    order_col = sort_map.get(sort_by, "so.title")
+    order_dir = "ASC" if direction == "asc" else "DESC"
+
+    
+    
+    
+
+    try:
+        with db_conn.cursor() as curs:
+            query = f'''
+                SELECT
+                    so.song_id,
+                    so.title,
+                    STRING_AGG(DISTINCT ar.name, ', ') AS artist_names,
+                    STRING_AGG(DISTINCT al.name, ', ') AS album_names,
+                    STRING_AGG(DISTINCT g.name, ', ') AS genre_names,
+                    so.length,
+                    so.release_date
+                FROM "song" AS so
+                INNER JOIN "makesong" AS m ON so.song_id = m.song_id
+                INNER JOIN "artist" AS ar ON ar.artist_id = m.artist_id
+                INNER JOIN "ispartofalbum" AS i ON so.song_id = i.song_id
+                INNER JOIN "album" AS al ON al.album_id = i.album_id
+                LEFT JOIN "songhasgenre" AS h ON so.song_id = h.song_id
+                LEFT JOIN "genre" AS g ON g.genre_id = h.genre_id
+                WHERE g.name ILIKE %s
+                GROUP BY so.song_id, so.title, so.length, so.release_date
+                ORDER BY {order_col} {order_dir}
+            '''
+            curs.execute(query, [f"%{search_term}%"])
+            songs = curs.fetchall()
+
+            for song in songs:
+                curs.execute(
+                    'SELECT COUNT(*) FROM "listentosong" WHERE username = %s AND song_id = %s',
+                    [current_user.id, song[0]]
+                )
+                listens = curs.fetchone()[0]
+
+                results.append({
+                    "song_id": song[0],
+                    "name": song[1],
+                    "artist": song[2],
+                    "album": song[3],
+                    "genre": song[4] if song[4] else "—",
+                    "length": song[5],
+                    "release_date": song[6],
+                    "listened": listens
+                })
+
+        db_conn.commit()
+
+    except psycopg.Error as e:
+        db_conn.rollback()
+        flash(f"Database error: {e}")
+        return f"Database error: {e}", 500
+
+    return render_template("popular/search_by_genre.html", results=results, search_term=search_term)
+
 #
 # Handles song playback in popular lists for songs
 # Directly copied from play.py with zero modifications, so it's not my work
@@ -195,7 +358,6 @@ def popular_genres():
 @login_required
 def play_song(song_id: int):
     print(request.form)
-    next_url = request.form['next']
     curr_time = datetime.datetime.now()
 
     conn = get_db()
@@ -207,8 +369,7 @@ def play_song(song_id: int):
     
     conn.commit()
 
-    if next_url:
-        return(redirect(next_url))
+    return(redirect(url_for("popular.popular_genres")))
 
 
 # HELPER FUNCTIONS
