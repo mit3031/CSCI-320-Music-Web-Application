@@ -81,7 +81,7 @@ def register():
                     INSERT INTO "user" (username, password, email, first_name, last_name, last_login, date_created)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     ''',
-                    (username, password, email, first_name, last_name, None, curr_time) #None represents the last_login since this is registration
+                    (username, secure_pw, email, first_name, last_name, None, curr_time) #None represents the last_login since this is registration
                 )
                 print("After insert:", time.time() - start)
             # figure out login & sessions
