@@ -104,3 +104,5 @@ def delete_collection(cid):
 
     return redirect(url_for(".collections_home"))
 
+
+
