@@ -1,0 +1,47 @@
+<!--
+The results screen for a popularity listing
+It's also just search/results.html without the sorting functionality.
+However, I editied the table dimensions, so it's a little more than barely my own work
+Author: Joseph Britton (jtb8595)
+-->
+
+{% extends "base.html" %}
+{% block title %}Popular Genres{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 50px auto; padding: 25px; border-radius: 12px; background-color: #f9f9f9; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+    <h2 style="text-align: center; margin-bottom: 25px; font-weight: 700;">Last Month's Top 5 Genres</h2>
+
+    <div style="overflow-x:auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: center;">
+            <thead style="background-color: #007BFF; color: white; font-weight: 600;">
+            <tr>
+                <th style="padding: 10px; border-radius: 8px 8px 0 0;">Genre Name</th>
+                <th>Search Songs in Genre</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for genre in results %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td>{{ genre.get('name', '—') }}</td>
+                    <td style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                        <form action="{{ url_for('popular.search_songs_by_genre') }}" method="POST">
+                            <input type="hidden" name="search" value="{{ genre.get('name', '—') }}">
+                            <button type="submit" style="padding: 6px 10px; border-radius: 50px; border: 1px solid #007BFF; background-color: white; color: #007BFF; font-weight: 500; cursor: pointer;">Search songs from this genre</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" style="padding: 12px; color: #6c757d;">No results found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 25px;">
+        <a href="{{ url_for('popular.songs_popular') }}" style="padding: 10px 20px; border-radius: 50px; border: 1px solid #343a40; color: #343a40; text-decoration: none;">← Back to Popular</a>
+    </div>
+</div>
+{% endblock %}

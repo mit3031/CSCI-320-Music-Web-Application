@@ -42,7 +42,54 @@ def view_profile():
         )
         following = curs.fetchall()
 
-    return render_template("profile/view.html", user=user, following=following)
+        # Get users who follow this user
+        curs.execute(
+            '''
+            SELECT u.username, u.first_name, u.last_name
+            FROM "followuser" f
+            JOIN "user" u ON f.follow_username = u.username
+            WHERE f.followed_username = %s
+            ORDER BY u.username ASC
+            ''',
+            (current_user.username,)
+        )
+        followers = curs.fetchall()
+
+        # Count of collections this user has
+        curs.execute(
+            'SELECT COUNT(*) FROM "collection" WHERE creator_username = %s',
+            (current_user.username,)
+        )
+        collection_count = curs.fetchone()[0]
+
+        # Top 10 artists by plays and additions to collections
+        curs.execute(
+            '''
+            SELECT a.name, COALESCE(play_count,0) + COALESCE(add_count,0) AS score
+            FROM "artist" a
+            LEFT JOIN (
+                SELECT ms.artist_id, COUNT(*) AS play_count
+                FROM "makesong" ms
+                JOIN "listentosong" lts ON ms.song_id = lts.song_id
+                WHERE lts.username = %s
+                GROUP BY ms.artist_id
+            ) plays ON a.artist_id = plays.artist_id
+            LEFT JOIN (
+                SELECT ms.artist_id, COUNT(*) AS add_count
+                FROM "makesong" ms
+                JOIN "ispartofcollection" ipc ON ms.song_id = ipc.song_id
+                JOIN "collection" c ON ipc.collection_id = c.collection_id
+                WHERE c.creator_username = %s
+                GROUP BY ms.artist_id
+            ) adds ON a.artist_id = adds.artist_id
+            ORDER BY score DESC
+            LIMIT 10
+            ''',
+            (current_user.username, current_user.username)
+        )
+        top_artists = curs.fetchall()
+
+    return render_template( "profile/view.html", user=user, following=following, followers=followers, collection_count=collection_count,top_artists=top_artists)
 
 
 """
