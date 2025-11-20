@@ -8,7 +8,6 @@ import psycopg
 from flask import Blueprint, request, render_template, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
 
-from app.dao.database_reccomender import get_user_id, get_username
 from app.reccomender_functions import reccomend_songs
 from .models import User
 from .db import get_db
