@@ -351,7 +351,7 @@ def sort_songs():
 
 #
 # Handles song playback in popular lists for songs
-# Directly copied from play.py with zero modifications, so it's not my work
+# Directly copied from play.py with one or two modifications
 # "Author": Joseph Britton (jtb8595)
 #
 @bp.route("/song/<int:song_id>", methods=["POST"])
