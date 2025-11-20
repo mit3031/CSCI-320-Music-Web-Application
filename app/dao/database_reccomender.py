@@ -15,6 +15,19 @@ def get_usernames():
         rows = cur.fetchall()
     return [row[0] for row in rows]
 
+# ----- Gets Username 
+def get_username(user_id: int):
+    sql = """
+        SELECT usernames
+        FROM user
+        WHERE user_id = %s
+    """
+    conn = get_db()
+    with conn.cursor() as cur:
+        cur.execute(sql, user_id)
+        row = cur.fetchone()
+    return row is not None
+
 # ----- Get All User Song Histroy 
 def get_song_ids():
     sql = """

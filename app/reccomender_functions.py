@@ -1,24 +1,33 @@
-from app.dao.database_reccomender import get_album_ids, get_artist_ids, get_genres_ids, get_song_id_history_recent, get_song_ids, get_top3_song_id_history_recent, get_usernames, song_in_album, song_in_genre, song_with_artist, get_song_id_history_all_time
+from app.dao.database_reccomender import (
+    get_album_ids, get_artist_ids, get_genres_ids,
+    get_song_id_history_recent, get_song_ids,
+    get_top3_song_id_history_recent, get_usernames,
+    song_in_album, song_in_genre, song_with_artist,
+    get_song_id_history_all_time
+)
 
 #Author: Sean Allen
 
 # ----- MAIN FUNCTION
 def reccomend_songs(target_username: str):
+
     user1 = get_closest_user_all_time(target_username)
-    user2 = get_closest_user_recent(target_username)
+    has_recent2, user2 = get_closest_user_recent(target_username)
 
     songs1 = get_top3_song_id_history_recent(user1)
-    songs2 = get_top3_song_id_history_recent(user2)
+
+    songs2 = []
+    if has_recent2 and user2 is not None:
+        songs2 = get_top3_song_id_history_recent(user2)
 
     if not songs2:
         return songs1
     else:
         return songs1 + songs2
 
-def get_largest_key(dictionary: dict) -> tuple[int, dict]:
-    largest_key = max(dictionary)
-    dictionary.pop(largest_key)
-    return largest_key, dictionary
+# -----  returns key with largest list length
+def get_largest_key(dictionary: dict[int, list[int]]) -> int:
+    return max(dictionary, key=lambda k: len(dictionary[k]))
 
 # ----- Get top 3 most listened to albums
 def get_top_3_album(username: str, song_list: list):
@@ -30,7 +39,7 @@ def get_top_3_album(username: str, song_list: list):
     #Adds songs to album
     for album in album_ids:
         for song in song_ids:
-            if(song_in_album(song)):
+            if (song_in_album(song, album)):
                 if album not in album_dict:
                     album_dict[album] = []
                 album_dict[album].append(song)
@@ -121,21 +130,20 @@ def get_vector_length():
     SONG_INDEX = {song_id: i for i, song_id in enumerate(ALL_SONG_IDS)}
     return len(ALL_SONG_IDS), SONG_INDEX
 
-# -----Createing a vector for each song, all time
 def build_user_vector_all_time(username: str) -> list[float]:
     history = get_song_id_history_all_time(username)
-    vector_length, song_index =  get_vector_length()
+    vector_length, song_index = get_vector_length()
     vec = [0.0] * vector_length #defines length of array
 
     #categorical attributes
-    weight = categorical_attributes(weight)
+    weight = categorical_attributes(username, history)
 
     #for each song give the inde x a score of 1
     for song_id in history:
         idx = song_index.get(song_id)
         if idx is not None:
-             #adjust scores based on how much target use matches with other users taste
-             #based on genre, artist, and album
+            #adjust scores based on how much target use matches with other users taste
+            #based on genre, artist, and album
             vec[idx] += weight
     return vec
 
@@ -156,36 +164,36 @@ def build_user_vector_recent(username: str):
             vec[idx] += 1.0
     return True, vec
 
-## ----- Get weights, Categorical Attributes so make scores be more accurate based on additional factors
-def categorical_attributes(username: str, history: list):
+def categorical_attributes(username: str, history: list[int]) -> float:
     album_3_all, genre_3_all, artist_3_all = get_top_3_all_time(username)
     album_3_rec, genre_3_rec, artist_3_rec = get_top_3_recent(username)
 
-    categorial_attributes = dict()
-    categorial_attributes["album_all"] = album_3_all
-    categorial_attributes["genre_all"] = genre_3_all
-    categorial_attributes["artist_all"] = artist_3_all
-    categorial_attributes["album_rec"] = album_3_rec
-    categorial_attributes["genre_rec"] = genre_3_rec
-    categorial_attributes["artist_rec"] = artist_3_rec
+    categorical_attrs = {
+        "album_all": album_3_all,
+        "genre_all": genre_3_all,
+        "artist_all": artist_3_all,
+        "album_rec": album_3_rec,
+        "genre_rec": genre_3_rec,
+        "artist_rec": artist_3_rec,
+    }
 
-    weight = get_weights(categorical_attributes, history)
-
+    weight = get_weights(categorical_attrs, history)
     return weight
 
-## -----Returns the values of each weight for the 3 categories
-def get_weights(categorical_attributes: dict, history: list):
+
+def get_weights(categorical_attrs: dict[str, list[int]], history: list[int]) -> float:
     weight = 1.0
 
-    for category in categorical_attributes:
-        for value in category:
+    for category_name, id_list in categorical_attrs.items():
+        for attr_id in id_list: 
             for song in history:
-                if (value == "album_all" or value == "album_rec") and song_in_album(song, value):
+                if category_name in("album_all", "album_rec") and song_in_album(song, attr_id):
                     weight += 0.3
-                elif (value == "genre_all" or value == "genre_rec") and song_in_genre(song, value):
+                elif category_name in ("genre_all", "genre_rec") and song_in_genre(song, attr_id):
                     weight += 0.8
-                elif (value == "artist_all" or value == "artist_rec") and song_with_artist(song, value):
+                elif category_name in ("artist_all", "artist_rec")and song_with_artist(song, attr_id):
                     weight += 0.5
+
     return weight
 
 ### ----- Cosine Similarity Calcuation Functions
@@ -280,3 +288,9 @@ def get_closest_user_all_time(target_username: str):
             best_user = u
 
     return best_user
+
+if __name__ == "__main__":
+    # put some test username that exists in your DB
+    test_user = "Sky"   # change this
+    print("Testing recommendations for:", test_user)
+    print(reccomend_songs(test_user))
