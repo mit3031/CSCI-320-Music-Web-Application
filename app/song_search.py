@@ -7,6 +7,8 @@ import psycopg
 
 from flask import Blueprint, request, render_template, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
+
+from app.reccomender_functions import reccomend_songs
 from .models import User
 from .db import get_db
 import datetime
@@ -262,3 +264,36 @@ def play_song(song_id: int):
 
     # Redirect back to previous page if provided
     return redirect(url_for("search.search_songs"))
+
+@bp.route("/reccomend/<username>", methods=["GET"])
+@login_required
+def reccomend_song(username: str):
+    song_ids = reccomend_songs(username)
+
+    results = []
+
+    if not song_ids:
+        return render_template("search/results.html", song_results=results)
+
+    db_conn = get_db()
+    with db_conn.cursor() as curs:
+        for song_id in song_ids:
+            curs.execute(
+                '''
+                SELECT song_id, title, length, release_date, is_explicit
+                FROM "song"
+                WHERE song_id = %s
+                ''',
+                (song_id,)
+            )
+            row = curs.fetchone()
+            if row:
+                results.append({
+                    "song_id": row[0],
+                    "title": row[1],
+                    "length": row[2],
+                    "release_date": row[3],
+                    "is_explicit": row[4],
+                })
+
+    return render_template("search/results.html", song_results=results)
