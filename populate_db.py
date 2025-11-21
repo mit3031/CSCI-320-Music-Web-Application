@@ -559,17 +559,29 @@ def populate_listen_to_song(con, n=5000):
     cur.execute("SELECT song_id FROM song")
     songs = [row[0] for row in cur.fetchall()]
     
+    cur.execute("SELECT username, song_id FROM listentosong")
+    existing_listens = set(cur.fetchall())
+
     data = []
     for username in users:
-        listened_songs = random.sample(songs, k=random.randint(5,15))
+        num_songs = random.randint(0, 15)
+        if num_songs == 0:
+            continue
+        avail_songs = [s for s in songs if (username, s) not in existing_listens]
+        
+        if not avail_songs:
+            continue
+        actual_num = min(num_songs, len(avail_songs))
+        listened_songs = random.sample(avail_songs, k=actual_num)
+        
         for song_id in listened_songs:
-            if len(data) >= n:
-                break
             data.append((username, song_id, rand_timestamp()))
+            existing_listens.add((username, song_id))
         if len(data) >= n:
             break
     
-    cur.executemany("INSERT INTO listentosong(username, song_id, datetime_listened) VALUES (%s, %s, %s)", data)
+    if data:
+        cur.executemany("INSERT INTO listentosong(username, song_id, datetime_listened) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING", data)
     con.commit()
 
 """
@@ -618,7 +630,7 @@ def main():
         sync_music(con)
         populate_is_part_of_collection(con)
         populate_listen_to_song(con)
-        populate_song_rating(con)
+        #populate_song_rating(con)
         
         con.close()
     except Exception as e:
