@@ -8,16 +8,19 @@ Author: Marvynn Talusan (mit3031)
 {% block title %}Song Search{% endblock %}
 
 {% block content %}
-<div style="max-width: 700px; margin: 50px auto; padding: 25px; border-radius: 12px; background-color: #f9f9f9; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+<div
+    style="max-width: 700px; margin: 50px auto; padding: 25px; border-radius: 12px; background-color: #f9f9f9; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
     <h2 style="text-align: center; margin-bottom: 25px; font-weight: 700;">Song Search</h2>
 
-    <form action="{{ url_for('search.search_songs') }}" method="POST" style="display: flex; flex-direction: column; gap: 18px;">
+    <form action="{{ url_for('search.search_songs') }}" method="POST"
+        style="display: flex; flex-direction: column; gap: 18px;">
         <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; align-items: flex-end;">
-            
+
             <!-- Search by Dropdown -->
             <div style="flex: 1; min-width: 150px;">
                 <label for="search_by" style="font-weight: 500;">Search by</label>
-                <select name="search_by" id="search_by" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                <select name="search_by" id="search_by"
+                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
                     <option value="name">Song Name</option>
                     <option value="artist">Artist</option>
                     <option value="album">Album</option>
@@ -29,29 +32,43 @@ Author: Marvynn Talusan (mit3031)
             <div style="flex: 2; min-width: 250px;">
                 <label for="search" style="font-weight: 500;">Search Term</label>
                 <input type="text" name="search" id="search" placeholder="Type a keyword..." required
-                       style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
             </div>
 
             <!-- Buttons -->
             <div style="display: flex; gap: 10px;">
-                <button type="submit" style="padding: 10px 18px; border-radius: 8px; border: none; background-color: #007BFF; color: white; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">Search</button>
-                <a href="{{ url_for('search.search_songs') }}" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #6c757d; color: #6c757d; font-weight: 500; text-decoration: none; text-align: center; cursor: pointer; transition: background-color 0.2s;">Reset</a>
+                <button type="submit"
+                    style="padding: 10px 18px; border-radius: 8px; border: none; background-color: #007BFF; color: white; font-weight: 500; cursor: pointer; transition: background-color 0.2s;">Search</button>
+                <a href="{{ url_for('search.search_songs') }}"
+                    style="padding: 10px 18px; border-radius: 8px; border: 1px solid #6c757d; color: #6c757d; font-weight: 500; text-decoration: none; text-align: center; cursor: pointer; transition: background-color 0.2s;">Reset</a>
             </div>
         </div>
     </form>
 
+    
+
+    <hr style="margin: 20px 0; border-color: #ccc;">
     <div style="text-align: center; margin-top: 25px;">
-        <a href="#" style="padding: 10px 20px; border-radius: 50px; border: 1px solid #343a40; color: #343a40; text-decoration: none; cursor: not-allowed;">← Back to Home</a>
-        <!-- Placeholder MUST CONNECT TO HOME PAGE AFTER MERGE -->
+        <h2>Recommended Songs</h2>
+        {% for song in recs %}
+            <div style="justify-content: space-evenly;">
+                <h4>{{ song[1] }}</h4>
+                <form action="{{ url_for('play.play_song', song_id=song[0]) }}" method="POST">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" style="padding: 6px 10px; border-radius: 50px; border: none; background-color: #28a745; color: white; font-weight: 500; cursor: pointer;">▶ Play</button>
+                </form>
+                <form action="{{ url_for('collections.add_track_view', song_id=song[0]) }}" method="POST">
+                    <button type="submit" style="padding: 6px 10px; border-radius: 50px; border: 1px solid #007BFF; background-color: white; color: #007BFF; font-weight: 500; cursor: pointer;">Add To Collections</button>
+                </form>
+            </div>
+        {% endfor %}
     </div>
 
+    <hr style="margin: 20px 0; border-color: #ccc;">
     <div style="text-align: center; margin-top: 25px;">
-    <form action="{{ url_for('search.reccomend_song', username=current_user.username) }}" method="get">
-        <button type="submit"
-                style="padding: 10px 20px; border-radius: 50px; border: 1px solid #343a40; background-color: white; color: #343a40; cursor: pointer;">
-            My Recommendations
-        </button>
-    </form>
-</div>
+        <a href="#"
+            style="padding: 10px 20px; border-radius: 50px; border: 1px solid #343a40; color: #343a40; text-decoration: none; cursor: not-allowed;">←
+            Back to Home</a>
+    </div>
 </div>
 {% endblock %}

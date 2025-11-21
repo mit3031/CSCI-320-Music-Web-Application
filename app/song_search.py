@@ -8,9 +8,9 @@ import psycopg
 from flask import Blueprint, request, render_template, redirect, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
 
-from app.reccomender_functions import reccomend_songs
 from .models import User
 from .db import get_db
+from .recommend import recommend_songs
 import datetime
 
 bp = Blueprint("search", __name__, url_prefix="/search")
@@ -23,6 +23,8 @@ bp = Blueprint("search", __name__, url_prefix="/search")
 @bp.route("/search", methods=["GET", "POST"])
 @login_required
 def search_songs():
+    rec_songs = recommend_songs(current_user.username)
+
     if request.method == "POST":
         search_term = request.form["search"].strip()  # Whatever's in the search bar
         search_by = request.form["search_by"].strip()  # Should be a dropdown
@@ -146,7 +148,7 @@ def search_songs():
     
         return render_template("search/results.html", results=results, search_term=search_term, search_by=search_by)
 
-    return render_template("search/search.html")
+    return render_template("search/search.html", recs=rec_songs)
 
 """
 Allows users to sort their search results by song name, artist, genre, or year

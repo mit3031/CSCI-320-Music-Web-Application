@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
+from .recommend import *
 
 bp = Blueprint("home", __name__, url_prefix="/")
 
