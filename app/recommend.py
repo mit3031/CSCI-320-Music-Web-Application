@@ -4,6 +4,8 @@ import random
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
+# Song Reccomender based on cosine similarity matrix
+# Author: Shuprovo Sikder
 def recommend_songs(username: str) -> list:
     users = get_closest_users(username)
 
